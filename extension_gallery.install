@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * Implements hook_install()
+ * Enables token replacement for the full_html input format
+**/
+function extension_gallery_install() {
+  $filter_enabled = db_query('SELECT 1 FROM filter WHERE module = \'token_filter\'')->fetchField();
+  if (!$filter_enabled){
+    $token_filter = new stdClass();
+    $token_filter->format = 'full_html';
+    $token_filter->module = 'token_filter';
+    $token_filter->name = 'filter_tokens';
+    $token_filter->weight = -50;
+    $token_filter->status = 1;
+    $token_filter->settings = array();
+    drupal_write_record('filter', $token_filter);
+  }
+  drupal_set_message('The <a href="'.base_path().'/admin/config/content/formats/full_html"><i>Full HTML</i> text format configuration form</a> must be saved to complete the installation of this feature.', $type='warning');
+}

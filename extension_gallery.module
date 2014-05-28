@@ -1,0 +1,207 @@
+<?php
+/**
+ * @file
+ * Code for the extension_gallery feature.
+ */
+
+include_once 'extension_gallery.features.inc';
+
+define('EG_MOD_PATH', drupal_get_path('module', 'extension_gallery'));
+
+/**
+ * Implements hook_theme_registry_alter()
+ * Adds this module's template files to the theme registry
+**/
+function extension_gallery_theme_registry_alter(&$theme_registry) {
+  $mod_path = drupal_get_path('module', 'extension_gallery');
+  $theme_registry_copy = $theme_registry;       // munge on a copy
+  _theme_process_registry($theme_registry_copy, 'phptemplate', 'theme_engine', 'pow', $mod_path);
+  $theme_registry += array_diff_key($theme_registry_copy, $theme_registry);
+  $hooks = array('node');
+  foreach ($hooks as $h) {
+    _extension_gallery_insert_after_first_element($theme_registry[$h]['theme paths'], $mod_path);
+  }
+}
+
+/**
+ * Helper function for re-ordering arrays (needed by theme_registry_alter)
+*/
+function _extension_gallery_insert_after_first_element(&$a, $element) {
+  if(is_array($a)) {
+    $first_element = array_shift($a);
+    array_unshift($a, $first_element, $element);
+  }
+}
+
+/**
+ * Implements hook_preprocess_html()
+**/
+function extension_gallery_preprocess_html(&$vars) {
+  // for the modal display only
+  if (arg(2) == 'gallery') {
+    // add template suggestion
+    $vars['theme_hook_suggestions'][] = 'html__node__gallery';
+    // add body classes
+    $vars['classes_array'][] = 'gallery-modal';
+    $vars['classes_array'][] = 'gallery-no-touch';
+    // add CSS and JS
+    drupal_add_css(EG_MOD_PATH . '/stylesheets/extension_gallery.css');
+    drupal_add_js(EG_MOD_PATH . '/scripts/extension_gallery.js');
+  }
+  // for regular pages
+  else {
+    drupal_add_css(EG_MOD_PATH . '/stylesheets/extension_gallery_caption.css');
+  }
+}
+
+/**
+ * Implements hook_preprocess_field()
+**/
+function extension_gallery_preprocess_field(&$variables, $hook) {
+  // add template suggestions for the field collection
+  if ($variables['element']['#field_name'] == 'field_gallery') {
+    // for modal display
+    if (arg(2) == 'gallery') {
+      $variables['theme_hook_suggestions'][] = 'field__gallery__field_collection__modal';
+    }
+    // for preview within page
+    else {
+      $variables['theme_hook_suggestions'][] = 'field__gallery__field_collection';
+    }
+  }
+  // set the image style
+  if ($variables['element']['#field_name'] == 'field_gallery_image') {
+    // for modal display
+    if (arg(2) == 'gallery') {
+      foreach ($variables['items'] as &$item) {
+        $item['#image_style'] = 'gallery_image';
+      }
+    }
+    // for preview within page
+    else {
+      foreach ($variables['items'] as &$item) {
+        $item['#image_style'] = 'gallery_preview';
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_node()
+**/
+function extension_gallery_preprocess_node(&$vars) {
+  // for modal display
+  if (arg(2) == 'gallery') {
+    // remove tht title
+    $vars['title'] = NULL;
+    // suggest a template
+    $vars['theme_hook_suggestions'][] = 'node__gallery';
+  }
+  // for preview within page
+  else if (isset($vars['field_gallery'])) {
+    // hide the caption and attribution
+    hide($vars['content']['field_gallery']['0']['entity']['field_collection_item'][1]['field_gallery_caption']);
+    hide($vars['content']['field_gallery']['0']['entity']['field_collection_item'][1]['field_gallery_attribution']);
+  }
+  // if we have gallery items in the node
+  if (!!field_get_items('node', $vars['node'], 'field_gallery')) {
+    // add JS to the page to set up the colorbox
+    drupal_add_js(EG_MOD_PATH . '/scripts/extension_gallery_cbox.js', array('type' => 'file', 'scope' => 'footer'));
+  }
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ * Adds a custom "gallery" view mode
+*/
+function extension_gallery_entity_info_alter(&$entity_info) {
+  $entity_info['node']['view modes']['gallery'] = array(
+    'label' => t('Gallery'),
+    'custom settings' => TRUE,
+  );
+}
+
+/**
+ * Implements hook_entity_view_mode_alter().
+ * Changes the view mode based on the URL
+*/
+function extension_gallery_entity_view_mode_alter(&$view_mode, $context) {
+  if ($context['entity_type'] == 'node' && arg(2) == 'gallery') {
+    $view_mode = 'gallery';
+  }
+}
+
+/**
+ * Implements hook_image_default_styles().
+ * Defines the necessary image formatters
+*/
+function extension_gallery_image_default_styles() {
+  $styles = array();
+  $styles['gallery_image'] = array(
+    'label' => 'Gallery image',
+    'effects' => array(
+      array(
+        'name' => 'image_scale',
+        'data' => array(
+          'width' => 900,
+          'height' => 900,
+          'upscale' => 0,
+        ),
+        'weight' => 0,
+      ),
+    ),
+  );
+  $styles['gallery_preview'] = array(
+    'label' => 'Gallery preview',
+    'effects' => array(
+      array(
+        'name' => 'image_scale',
+        'data' => array(
+          'width' => 260,
+          'height' => NULL,
+          'upscale' => 0,
+        ),
+        'weight' => 0,
+      ),
+    ),
+  );
+  return $styles;
+}
+
+/**
+ * Implements hook_insert_styles()
+ * Adds Gallery Link option to insert module
+*/
+function extension_gallery_insert_styles() {
+  $insert_styles = array();
+  $insert_styles['gallery_preview'] = array(
+    'label' => t('Gallery Link'),
+    'weight' => -20,
+  );
+  return $insert_styles;
+}
+
+/**
+ * Implementation of hook_insert_content()
+ * Returns the actual content to be inserted into the WYSIWYG
+ */
+function extension_gallery_insert_content($item) {
+  return theme('extension_gallery_insert_image', array('item' => $item));
+}
+
+/**
+ * Implements hook_theme()
+ * Suggest a template and preprocess functions to output the insert content
+ */
+function extension_gallery_theme() {
+  return array(
+    'extension_gallery_insert_image' => array(
+      'variables' => array(
+        'item' => NULL,
+      ),
+      'template' => 'templates/extension-gallery-insert-image',
+      'pattern' => 'extension-gallery-insert-image',
+      'file' => 'extension_gallery.theme.inc',
+    ),
+  );
+}

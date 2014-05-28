@@ -1,0 +1,80 @@
+/**
+ * Caption filter default styling for displaying image captions.
+ * (Majority of styles duplicated from OAP's custom.css)
+ */
+.caption-inner a img {
+	padding-bottom: 10px;
+	margin: 0;
+}
+
+#content div.caption .caption-inner p.caption-text {
+	margin:	0 0 .3em 0; /* removes extra margin below */
+}
+
+div.caption {
+  clear: both;
+}
+
+.caption div.caption-inner {
+  border: 1px solid #ddd;
+  background-color: #f3f3f3;
+  color: #595959;
+  padding: 10px;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.875em;
+  font-style: inherit;
+  line-height: 1.2;
+}
+
+.caption .caption-inner a {
+  display: block;
+  position: relative;
+  text-decoration: none;
+  outline: 0;
+}
+
+div.caption img,
+div.caption object {
+  margin-bottom: 0px;
+  display: block;
+}
+
+.caption-overlay {
+  display: block;
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  width: 52px;
+  height: 40px;
+  margin-left: -26px;
+  margin-top: -20px;
+  background-image: url('../images/slideshow-icon.png');
+  background-repeat: no-repeat;
+  background-position: center center;
+  opacity: 0.7;
+}
+
+a:hover .caption-overlay {
+  opacity: 1;
+}
+
+/** aligned captions **/
+div.caption-left {
+  float: left;
+  margin: 10px 15px 15px 0;
+}
+
+div.caption-right {
+  float: right;
+  margin: 10px 0 15px 15px;
+}
+
+div.caption-center {
+  float: right;
+  margin: 10px 0 15px 15px;
+}
+
+.caption .caption-inner .caption-text {
+	margin: 0;
+}
