@@ -27,7 +27,7 @@ div.caption {
   line-height: 1.2;
 }
 
-.caption .caption-inner a {
+.caption .caption-inner > a {
   display: block;
   position: relative;
   text-decoration: none;
